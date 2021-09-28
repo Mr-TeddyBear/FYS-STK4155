@@ -10,6 +10,7 @@ from frankefunction import FrankeFunction, PlotFrankeFunction
 from utilFunctions import MSE, R2, create_X
 from regressionMethods import OLS
 from bootstrap import run_bootstrap
+from testFunctions import model_complexity_bootstrap, model_complexity_tradeoff
 
 
 if __name__ == "__main__":
@@ -27,10 +28,18 @@ if __name__ == "__main__":
 
     ols_fit = OLS(train_X, train_Y)
 
-    print(np.shape(train_X))
-    print(np.shape(train_Y))
-    print(np.shape(ols_fit))
+#    comp_n, complexity_boot = model_complexity_bootstrap(
+#        n_comlexity=8, n_boot=10)
 
-    n_boot = 100
-    bootstrap_output = run_bootstrap(
-        n_boot, train_X, train_Y, OLS, test_X, test_Y)
+    #plt.plot(comp_n, complexity_boot[:, 0])
+
+# plt.plot(comp_n, complexity_boot[:, 1])
+#    plt.plot(comp_n, complexity_boot[:, 2])
+
+    n_max_complex, mse_train, mse_test = model_complexity_tradeoff(
+        n_comlexity=20)
+    n = np.linspace(1, n_max_complex, n_max_complex, endpoint=True, dtype=int)
+    plt.plot(n, mse_test, "-o")
+    plt.plot(n, mse_train, "-o")
+    plt.legend(["Test", "Train"])
+    plt.show()

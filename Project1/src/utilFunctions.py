@@ -11,20 +11,26 @@ def create_X(x, y, n, method="test"):
         y = np.ravel(y)
 
     methods = {"test": _test, "squared": _squared}
-    print(((n+1)*(n+2)/2))
     X = np.zeros((len(x), int((n+1)*(n+2)/2)))
 
     return methods[method](x, y, X, n)
 
 
 def _test(x, y, X, n):
+    """
+    Combination function for create_X
+    """
     for i in range(1, n+1):
         q = int((i)*(i+1)/2)
         for k in range(i+1):
             X[:, q+k] = (x**(i-k))*(y**k)
+    return X
 
 
 def _squared(x, y, X, n):
+    """
+    Combination function for create_X
+    """
     k = 0  # counts how many rows in the matrix we have filled out
     for j in range(0, n + 1):
         for i in range(0, n - j + 1):
