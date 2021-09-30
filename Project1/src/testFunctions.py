@@ -7,9 +7,10 @@ import matplotlib.pyplot as plt
 
 # Import self written code
 from frankefunction import FrankeFunction, PlotFrankeFunction
+from resampeling import k_fold_validation
 from utilFunctions import MSE, R2, create_X
 from regressionMethods import OLS
-from bootstrap import run_bootstrap
+from resampeling import run_bootstrap, run_kfold
 
 
 def model_complexity_bootstrap(N=100, n_comlexity=10, n_boot=100, model=OLS):
@@ -37,13 +38,11 @@ def model_complexity_bootstrap(N=100, n_comlexity=10, n_boot=100, model=OLS):
     return np.linspace(1, n_comlexity, n_comlexity, endpoint=True), n_comp_storage
 
 
-def model_complexity_tradeoff(n_comlexity=10, N=100, model=OLS):
+def model_complexity_tradeoff(x, y, n_comlexity=10, N=100, model=OLS):
     """
     Calculates MSE of test and train data for model complexity
     from 1 to n_complexity. Also generates data.
     """
-    x = np.random.uniform(0, 1, N)
-    y = np.random.uniform(0, 1, N)
     mse_test = np.zeros(n_comlexity)
     mse_train = np.zeros(n_comlexity)
     for n in range(n_comlexity):
@@ -62,3 +61,33 @@ def model_complexity_tradeoff(n_comlexity=10, N=100, model=OLS):
         mse_train[n] = MSE(train_Y, tilde_train)
 
     return n_comlexity, mse_train, mse_test
+
+
+def model_complexity_tradeoff_k_fold(x, y, n_complexity=10, N=100, model=OLS):
+    mse = np.zeros(n_complexity)
+
+    for n in range(n_complexity):
+        X = create_X(x, y, n=n+1, method="squared")
+        z = FrankeFunction(x, y)
+
+        mse[n] = run_kfold(X, z, nfold=5, model=OLS)[0]
+
+    return mse, n_complexity
+
+
+def sklearn_kfold(x, y, n_complexity=10, N=100, model=OLS):
+    from sklearn.linear_model import LinearRegression
+    from sklearn.model_selection import cross_val_score
+
+    mse = np.zeros(n_complexity)
+
+    for n in range(n_complexity):
+        X = create_X(x, y, n=n+1, method="squared")
+        z = FrankeFunction(x, y)
+
+        m = LinearRegression(X, z, fit_intercept=True)
+
+        mse[n] = np.mean(-(cross_val_score(m, X, y,
+                         scoring='neg_mean_squared_error', cv=5)))
+
+    return mse, n_complexity
