@@ -7,10 +7,10 @@ import matplotlib.pyplot as plt
 
 # Import self written code
 from frankefunction import FrankeFunction, PlotFrankeFunction
-from resampeling import k_fold_validation
 from utilFunctions import MSE, R2, create_X
-from regressionMethods import OLS
-from resampeling import run_bootstrap, run_kfold
+from regressionMethods import OLS, RIDGE
+from bootstrap import run_bootstrap, run_bootstrap_ridge
+from k_fold import run_kfold, k_fold_validation, k_fold_validation_ridge
 
 
 def model_complexity_bootstrap(N=100, n_comlexity=10, n_boot=100, model=OLS):
@@ -91,3 +91,35 @@ def sklearn_kfold(x, y, n_complexity=10, N=100, model=OLS):
                          scoring='neg_mean_squared_error', cv=5)))
 
     return mse, n_complexity
+
+
+def ridge_bootstrap_and_kfold(x, y, n_comp=10, n_lambda=10, N=100, n_boot=100, model=RIDGE):
+    mse_test = np.zeros([n_comp, n_lambda])
+    mse_train = np.zeros([n_comp, n_lambda])
+    n_comp_storage = np.empty([n_comp, n_lambda, 3])
+
+    for l in range(1, n_lambda+1):
+        for n in range(n_comp):
+            """
+            Bootstrap
+            """
+            X = create_X(x, y, n=n+1, method="squared")
+            z = FrankeFunction(x, y)
+
+            train_X, test_X, train_Y, test_Y = train_test_split(
+                X, z, test_size=0.2)
+
+            tmp = run_bootstrap_ridge(
+                n_boot, train_X, train_Y, model, l, test_X, test_Y)
+            n_comp_storage[n, l-1, 0] = tmp["error"]
+            n_comp_storage[n, l-1, 1] = tmp["bias"]
+            n_comp_storage[n, l-1, 2] = tmp["variance"]
+
+            """
+            K-fold
+            """
+
+            mse_test[n, l-1],  mse_train[n, l-1] = [np.mean(i) for i in k_fold_validation_ridge(
+                X, z, 10, RIDGE, l)]
+
+    return n_comp, n_lambda, mse_train, mse_test, n_comp_storage

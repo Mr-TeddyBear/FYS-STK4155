@@ -2,11 +2,11 @@ from sklearn.utils import resample
 import numpy as np
 
 
-def _bootstrap(n_bootstrap_runs, x, y, x_test, y_test, model):
+def bootstrap(n_bootstrap_runs, x, y, x_test, y_test, model, l):
     y_pred = np.empty((y_test.shape[0], n_bootstrap_runs))
     for i in range(n_bootstrap_runs):
         x_, y_ = resample(x, y)
-        y_pred[:, i] = (x_test @ model(x_, y_))
+        y_pred[:, i] = (x_test @ model(x_, y_, l))
 
     return y_pred
 
@@ -23,5 +23,10 @@ def error_bias_variance(y_test, y_pred):
 
 
 def run_bootstrap(n_bootstrap_runs, x, y, model, x_test, y_test):
-    y_pred = _bootstrap(n_bootstrap_runs, x, y, x_test, y_test, model)
+    y_pred = bootstrap(n_bootstrap_runs, x, y, x_test, y_test, model)
+    return error_bias_variance(y_test, y_pred)
+
+
+def run_bootstrap_ridge(n_bootstrap_runs, x, y, model, l, x_test, y_test):
+    y_pred = bootstrap(n_bootstrap_runs, x, y, x_test, y_test, model, l)
     return error_bias_variance(y_test, y_pred)
