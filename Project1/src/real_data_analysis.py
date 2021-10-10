@@ -10,9 +10,9 @@ import matplotlib.pyplot as plt
 # Import self written code
 from frankefunction import FrankeFunction, PlotFrankeFunction
 from utilFunctions import MSE, R2, create_X
-from regressionMethods import OLS
+from regressionMethods import OLS, RIDGE
 from bootstrap import run_bootstrap
-from k_fold import run_kfold
+from k_fold import run_kfold, k_fold_validation_ridge
 
 
 def run_realdata_analasys(filename):
@@ -48,6 +48,72 @@ def run_realdata_analasys(filename):
     x, y, z = create_XY(terrain_data_slice)
 
     X = create_X(x, y, n, "lin")
+
+
+def model_complexity_bootstrap(X, z, n, n_boot=100, model=OLS):
+    """
+    Runs bootstrap on models from 1 to n_complexity.
+    """
+    n_comp_storage = np.empty([n, 3])
+
+    train_X, test_X, train_Y, test_Y = train_test_split(
+        X, z, test_size=0.2)
+
+    tmp = run_bootstrap(
+        n_boot, train_X, train_Y, model, test_X, test_Y)
+    n_comp_storage[n, 0] = tmp["error"]
+    n_comp_storage[n, 1] = tmp["bias"]
+    n_comp_storage[n, 2] = tmp["variance"]
+    print(f"Completd model complexity {n}")
+
+    return n_comp_storage
+
+
+def model_complexity_tradeoff(X, z, n, model=OLS):
+    """
+    Calculates MSE of test and train data for model complexity
+    from 1 to n_complexity. Also generates data.
+    """
+    mse_test = np.zeros(n)
+    mse_train = np.zeros(n)
+
+    train_X, test_X, train_Y, test_Y = train_test_split(
+        X, z, test_size=0.2)
+
+    beta = model(X, z)
+
+    tilde_test = test_X @ beta
+    tilde_train = train_X @ beta
+
+    mse_test[n] = MSE(test_Y, tilde_test)
+    mse_train[n] = MSE(train_Y, tilde_train)
+
+    return mse_train, mse_test
+
+
+def model_complexity_tradeoff_k_fold(X, z, n, model=OLS):
+    mse = run_kfold(X, z, nfold=5, model=OLS)[0]
+    return mse
+
+
+def ridge_bootstrap_and_kfold(X, z, n, lam, n_boot=100, model=RIDGE):
+    """
+    Bootstrap
+    """
+
+    train_X, test_X, train_Y, test_Y = train_test_split(
+        X, z, test_size=0.2)
+
+    tmp = run_bootstrap_ridge(
+        n_boot, train_X, train_Y, model, l, test_X, test_Y)
+    """
+    K-fold
+    """
+
+    mse_test,  mse_train = np.mean(k_fold_validation_ridge(
+        X, z, 10, RIDGE, lam))
+
+    return n_comp, n_lambda, mse_train, mse_test, [tmp['error'], tmp['bias'], tmp['variance']]
 
 
 if __name__ == "__main__":
