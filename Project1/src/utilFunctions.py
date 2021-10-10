@@ -1,22 +1,30 @@
 import numpy as np
 
 
-def create_X(x, y, n, method="test"):
+def create_X(x, y, n, method="lin"):
     """
     Creates the beta matrix by combining x and y,
     the complxity of the matrix defined by n
+
+    Copied from lecture notes week35
     """
     if len(x.shape) > 1:
         x = np.ravel(x)
         y = np.ravel(y)
 
-    methods = {"test": _test, "squared": _squared}
-    X = np.zeros((len(x), int((n+1)*(n+2)/2)))
+    N = len(x)
+    l = int((n+1)*(n+2)/2)		# Number of elements in beta
+    X = np.ones((N, l))
 
-    return methods[method](x, y, X, n)
+    for i in range(1, n+1):
+        q = int((i)*(i+1)/2)
+        for k in range(i+1):
+            X[:, q+k] = (x**(i-k))*(y**k)
+
+    return X
 
 
-def _test(x, y, X, n):
+def _lin(x, y, X, n):
     """
     Combination function for create_X
     """

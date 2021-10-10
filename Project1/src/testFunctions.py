@@ -22,7 +22,7 @@ def model_complexity_bootstrap(N=100, n_comlexity=10, n_boot=100, model=OLS):
     y = np.random.uniform(0, 1, N)
 
     for n in range(n_comlexity):
-        X = create_X(x, y, n=n+1, method="squared")
+        X = create_X(x, y, n=n+1, method="lin")
         z = FrankeFunction(x, y)
 
         train_X, test_X, train_Y, test_Y = train_test_split(
@@ -46,7 +46,7 @@ def model_complexity_tradeoff(x, y, n_comlexity=10, N=100, model=OLS):
     mse_test = np.zeros(n_comlexity)
     mse_train = np.zeros(n_comlexity)
     for n in range(n_comlexity):
-        X = create_X(x, y, n=n+1, method="squared")
+        X = create_X(x, y, n=n+1, method="lin")
         z = FrankeFunction(x, y)
 
         train_X, test_X, train_Y, test_Y = train_test_split(
@@ -67,7 +67,7 @@ def model_complexity_tradeoff_k_fold(x, y, n_complexity=10, N=100, model=OLS):
     mse = np.zeros(n_complexity)
 
     for n in range(n_complexity):
-        X = create_X(x, y, n=n+1, method="squared")
+        X = create_X(x, y, n=n+1, method="lin")
         z = FrankeFunction(x, y)
 
         mse[n] = run_kfold(X, z, nfold=5, model=OLS)[0]
@@ -82,7 +82,7 @@ def sklearn_kfold(x, y, n_complexity=10, N=100, model=OLS):
     mse = np.zeros(n_complexity)
 
     for n in range(n_complexity):
-        X = create_X(x, y, n=n+1, method="squared")
+        X = create_X(x, y, n=n+1, method="lin")
         z = FrankeFunction(x, y)
 
         m = LinearRegression(X, z, fit_intercept=True)
@@ -103,7 +103,7 @@ def ridge_bootstrap_and_kfold(x, y, n_comp=10, n_lambda=10, N=100, n_boot=100, m
             """
             Bootstrap
             """
-            X = create_X(x, y, n=n+1, method="squared")
+            X = create_X(x, y, n=n+1, method="lin")
             z = FrankeFunction(x, y)
 
             train_X, test_X, train_Y, test_Y = train_test_split(

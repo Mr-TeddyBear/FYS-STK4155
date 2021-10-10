@@ -18,7 +18,7 @@ if __name__ == "__main__":
     np.random.seed(1859)
     n = 2
     N = 100
-    level = 1
+    level = 2
     x = np.random.uniform(0, 1, N) + np.random.normal(0, 0.1, N)*level
     y = np.random.uniform(0, 1, N) + np.random.normal(0, 0.1, N)*level
     #print(np.shape(x), np.shape(y))
@@ -41,15 +41,15 @@ if __name__ == "__main__":
     """
     Calculate and plot bias-variance on test and train data, using OLS
     """
-    """
-    n_max_complex, mse_train, mse_test = model_complexity_tradeoff(
-        n_comlexity=20)
+    n_max_complex, mse_train, mse_test = model_complexity_tradeoff(x, y,
+                                                                   n_comlexity=20)
     n = np.linspace(1, n_max_complex, n_max_complex, endpoint=True, dtype=int)
-    plt.plot(n, mse_test, "-o")
-    plt.plot(n, mse_train, "-o")
+    plt.plot(np.log10(mse_test), "-o")
+    plt.plot(np.log10(mse_train), "-o")
     plt.legend(["Test", "Train"])
-    plt.show()
-    """
+    plt.title("bias-variance tradeoff, OLS log10-log10")
+    plt.figure()
+#    plt.show()
 
     """
     K-fold corss-validation
@@ -58,7 +58,8 @@ if __name__ == "__main__":
     a, n = model_complexity_tradeoff_k_fold(x, y)
 
     n = np.linspace(1, n, n, endpoint=True, dtype=int)
-    plt.plot(n, a)
+    plt.plot(n, a, '-o')
+    plt.title("Model complexity tradeoff OLS")
 
     #b, _ = sklearn_kfold(x, y)
     #plt.plot(n, b)
@@ -70,38 +71,40 @@ if __name__ == "__main__":
     plt.figure()
 
     plt.plot(np.min(ridge_k_mse_test, axis=1), '-o')
-    plt.title("Lambda MSE K-fold")
+    plt.title("Lambda MSE K-fold, Ridge")
     plt.legend(["Test"])
     plt.figure()
-    
-    plt.plot(np.min(ridge_bootstrap[:,:,0], axis=1), '-o')
-    plt.title("Lambda MSE Bootstrap")
+
+    plt.plot(np.min(ridge_bootstrap[:, :, 0], axis=1), '-o')
+    plt.title("Lambda MSE Bootstrap, Ridge")
     plt.figure()
 
-
-    leg = []
+    mean_ridge_boot = []
     for i in n:
-        plt.plot(ridge_bootstrap[i-1,:,2], '-o')
-        leg.append(str(i))
-    plt.legend(leg)
-    plt.title("Bootstrap variance")
+        mean_ridge_boot.append(np.mean(ridge_bootstrap[i-1, :, 2]))
+    plt.plot(mean_ridge_boot, '-o')
+    plt.title("Mean bootstrap variance, Ridge")
     plt.figure()
 
+    mean_bootstrap_bias = []
     for i in n:
-        plt.plot(i, np.mean(ridge_bootstrap[:,i-1,1]), '-o')
-        leg.append(str(i))
-    plt.legend(leg)
-    plt.title("Bootstrap bias")
+        mean_bootstrap_bias.append(np.mean(ridge_bootstrap[:, i-1, 1]))
+    plt.plot(mean_bootstrap_bias, '-o')
+    plt.title("Mean bootstrap bias, Ridge")
     plt.figure()
 
-    for i in n:
-        plt.plot(i, np.mean(ridge_bootstrap[:,i-1,1]), 'g-o')
-        plt.plot(i, np.mean(ridge_bootstrap[:,i-1,2]), 'y-o')
-    plt.title("mean Bootstrap bias vs variance")
+    plt.plot(mean_ridge_boot, '-o')
+    plt.plot(mean_bootstrap_bias, '-o')
+    plt.legend(["variance", "bias"])
+    plt.title("mean Bootstrap bias vs variance, Ridge")
 
-    bootstrap_best_error_complexity, bootstrap_best_error_lambda = np.where( ridge_bootstrap[:,:,0] == np.amin(ridge_bootstrap[:,:,0]))
-    kfold_best_error_complexity, kfold_best_error_lambda  = np.where(ridge_k_mse_test ==  np.amin(ridge_k_mse_test))
-    print(f"Best error from bootstrap, complexity: {bootstrap_best_error_complexity}, lambda: {bootstrap_best_error_lambda}")
-    print(f"Best error from K-fold  complexity: {kfold_best_error_complexity}, lambda: {kfold_best_error_lambda}")   
+    bootstrap_best_error_complexity, bootstrap_best_error_lambda = np.where(
+        ridge_bootstrap[:, :, 0] == np.amin(ridge_bootstrap[:, :, 0]))
+    kfold_best_error_complexity, kfold_best_error_lambda = np.where(
+        ridge_k_mse_test == np.amin(ridge_k_mse_test))
+    print(
+        f"Best error from bootstrap, complexity: {bootstrap_best_error_complexity}, lambda: {bootstrap_best_error_lambda}")
+    print(
+        f"Best error from K-fold  complexity: {kfold_best_error_complexity}, lambda: {kfold_best_error_lambda}")
 
     plt.show()
