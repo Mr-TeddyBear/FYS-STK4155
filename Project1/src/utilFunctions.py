@@ -1,6 +1,10 @@
 import numpy as np
 
 
+def scale(x):
+    return (x - np.mean(x))/np.std(x)
+
+
 def create_X(x, y, n, method="lin"):
     """
     Creates the beta matrix by combining x and y,

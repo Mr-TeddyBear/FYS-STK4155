@@ -16,6 +16,16 @@ def bootstrap(n_bootstrap_runs, x, y, x_test, y_test, model, l=None):
     return y_pred
 
 
+def bootstrap_lasso(n_bootstrap_runs, x, y, x_test, y_test, model):
+    y_pred = np.empty((y_test.shape[0], n_bootstrap_runs))
+    for i in range(n_bootstrap_runs):
+        x_, y_ = resample(x, y)
+        model.fit(x_, y_)
+        y_pred[:, i] = model.predict(x_test)
+
+    return y_pred
+
+
 def error_bias_variance(y_test, y_pred):
     error = np.zeros(y_pred.shape[1])
     for i in range(y_pred.shape[1]):
@@ -34,4 +44,9 @@ def run_bootstrap(n_bootstrap_runs, x, y, model, x_test, y_test):
 
 def run_bootstrap_ridge(n_bootstrap_runs, x, y, model, l, x_test, y_test):
     y_pred = bootstrap(n_bootstrap_runs, x, y, x_test, y_test, model, l)
+    return error_bias_variance(y_test, y_pred)
+
+
+def run_bootstrap_lasso(n_bootstrap_runs, x, y, model, x_test, y_test):
+    y_pred = bootstrap_lasso(n_bootstrap_runs, x, y, x_test, y_test, model)
     return error_bias_variance(y_test, y_pred)
