@@ -1,6 +1,7 @@
 from sklearn.utils import resample
 import numpy as np
 from utilFunctions import MSE, R2
+
 def k_fold_validation(x, y, n_folds, model):
     #print("n folds", n_folds)
     fold_length = int(x.shape[0] // n_folds)
@@ -47,6 +48,7 @@ def k_fold_validation(x, y, n_folds, model):
     r2_fold[-1] = R2(y_test, predict)
 
     return mse_fold, r2_fold
+
 
 def k_fold_validation_ridge(x, y, n_folds, model, l):
     fold_length = int(x.shape[0] // n_folds)

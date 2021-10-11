@@ -2,11 +2,16 @@ from sklearn.utils import resample
 import numpy as np
 
 
-def bootstrap(n_bootstrap_runs, x, y, x_test, y_test, model, l):
+def bootstrap(n_bootstrap_runs, x, y, x_test, y_test, model, l=None):
     y_pred = np.empty((y_test.shape[0], n_bootstrap_runs))
-    for i in range(n_bootstrap_runs):
-        x_, y_ = resample(x, y)
-        y_pred[:, i] = (x_test @ model(x_, y_, l))
+    if l == None:
+        for i in range(n_bootstrap_runs):
+            x_, y_ = resample(x, y)
+            y_pred[:, i] = (x_test @ model(x_, y_))
+    else:
+        for i in range(n_bootstrap_runs):
+            x_, y_ = resample(x, y)
+            y_pred[:, i] = (x_test @ model(x_, y_, l))
 
     return y_pred
 
