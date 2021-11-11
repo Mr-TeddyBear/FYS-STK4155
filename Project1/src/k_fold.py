@@ -1,6 +1,8 @@
 from sklearn.utils import resample
 import numpy as np
 from utilFunctions import MSE, R2
+
+
 def k_fold_validation(x, y, n_folds, model):
     #print("n folds", n_folds)
     fold_length = int(x.shape[0] // n_folds)
@@ -48,12 +50,13 @@ def k_fold_validation(x, y, n_folds, model):
 
     return mse_fold, r2_fold
 
+
 def k_fold_validation_ridge(x, y, n_folds, model, l):
     fold_length = int(x.shape[0] // n_folds)
     mse_fold = np.empty(n_folds)
     r2_fold = np.empty(n_folds)
     for i in range(0, n_folds-1):
-#        print(f"Running fold {i}")
+        #        print(f"Running fold {i}")
         trainX = np.ones(x.shape[0], dtype=bool)
         trainY = np.ones(y.shape, dtype=bool)
 
@@ -88,6 +91,56 @@ def k_fold_validation_ridge(x, y, n_folds, model, l):
 
     beta = model(x_train, y_train, l)
     predict = x_test @ beta
+
+    mse_fold[-1] = MSE(y_test, predict)
+    r2_fold[-1] = R2(y_test, predict)
+
+    return mse_fold, r2_fold
+
+
+def k_fold_validation_lasso(x, y, n_folds, model, a):
+    fold_length = int(x.shape[0] // n_folds)
+    mse_fold = np.empty(n_folds)
+    r2_fold = np.empty(n_folds)
+    for i in range(0, n_folds-1):
+        #        print(f"Running fold {i}")
+        trainX = np.ones(x.shape[0], dtype=bool)
+        trainY = np.ones(y.shape, dtype=bool)
+
+        trainX[i*fold_length:(i+1)*fold_length] = False
+        trainY[i*fold_length:(i+1)*fold_length] = False
+
+        x_train = x[trainX]
+        y_train = y[trainY]
+
+        x_test = x[np.invert(trainX)]
+        y_test = y[np.invert(trainY)]
+
+        #print("shapes", x_train.shape, y_train.shape)
+
+        mod = model.Lasso(alpha=a)
+        mod.fit(x_train, y_train)
+
+        predict = mod.predict(x_test)
+
+        mse_fold[i] = MSE(y_test, predict)
+        r2_fold[i] = R2(y_test, predict)
+
+    trainX = np.ones(x.shape[0], dtype=bool)
+    trainY = np.ones(y.shape, dtype=bool)
+
+    trainX[-fold_length:] = False
+    trainY[-fold_length:] = False
+
+    x_train = x[trainX]
+    y_train = y[trainY]
+
+    x_test = x[np.invert(trainX)]
+    y_test = y[np.invert(trainY)]
+
+    mod = model.Lasso(alpha=a)
+    mod.fit(x_train, y_train)
+    predict = mod.predict(x_test)
 
     mse_fold[-1] = MSE(y_test, predict)
     r2_fold[-1] = R2(y_test, predict)
