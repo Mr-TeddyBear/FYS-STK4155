@@ -3,11 +3,15 @@ import matplotlib.pyplot as plt
 
 
 from sklearn.model_selection import train_test_split
+from sklearn.linear_model import SGDRegressor
+from sklearn.metrics import mean_squared_error
 
 from src.gradientDecent import gradientDecent
 from src.regressionMethods import OLS
 from src.utilFunctions import create_X, R2, MSE
 from src.frankefunction import FrankeFunction
+
+import seaborn as sea
 
 
 def main():
@@ -29,22 +33,56 @@ def main():
     epochs, M, t0, t1 = 50, 5, 5, 50
     sgd = gradientDecent(epochs, M, t0, t1)
 
-    theta = np.random.randn(2, 1)
-
+    theta = np.random.randn(X.shape[1])
     theta = sgd.calculateGradient(OLS, train_X, train_Y, theta)
 
     print(f"Simple OLS: {theta_linreg}")
     print(f"SGD theta: {theta}")
 
     ypred = test_X.dot(theta_linreg)
-    ypred2 = test_Y.dot(theta)
+    ypred2 = test_X @ theta
 
-    print(f"OLS MSE: {MSE(theta_linreg, test_Y)}")
-    print(f"SGD MSE: {MSE(theta, test_Y)}")
+    print(f"OLS MSE: {MSE(ypred, test_Y)}")
+    print(f"SGD MSE: {MSE(ypred2, test_Y)}")
 
     # plt.plot(xnew, ypred, "ro-")
     # plt.plot(xnew, ypred2, "ro-")
     # plt.show()
+
+    skSGD = SGDRegressor()
+
+    skSGD.fit(train_X, train_Y)
+
+    mseSKlearn = mean_squared_error(test_Y, skSGD.predict(test_X))
+
+    
+    print(f"SKlearn MSE: {mseSKlearn}")
+
+
+
+    epochs = range(60,301,20)
+    M = range(20,80, 10)
+    degree = range(5,15)
+    t0, t1 = 5, 500
+    
+    MSE_result = np.empty([len(epochs), len(M)])
+
+
+    
+    for i, e in enumerate(epochs):
+        for j, m in enumerate(M):
+            theta = np.random.rand(X.shape[1])
+            sgd = gradientDecent(e, m, t0 ,t1)
+            B = sgd.calculateGradient(OLS, train_X, train_Y, theta)
+            pred = test_X.dot(B)
+            mse_tmp = MSE(pred, test_Y)
+#            print(mse_tmp, e, m)
+            MSE_result[i,j] = mse_tmp
+
+
+    sea.heatmap(MSE_result, robust=True)
+    sea.clustermap(MSE_result)
+    plt.show()
 
 
 if __name__ == "__main__":

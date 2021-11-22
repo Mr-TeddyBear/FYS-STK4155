@@ -35,7 +35,7 @@ class gradientDecent():
         for epoch in range(self.epochs):
             for i in range(self.m):
                 Xb, yb = resample(X, y, replace=False, n_samples=self.M)
-                print(Xb.shape, yb.shape)
+                #print(Xb.shape, yb.shape, theta.shape)
                 grad = regMethod(Xb, yb, theta)
                 l_rate = self.learning_rate(epoch*self.m+i)
                 theta = theta - l_rate*grad
