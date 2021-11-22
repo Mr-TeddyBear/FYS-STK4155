@@ -1,24 +1,30 @@
 import numpy as np
 
-from sklearn.util import resample
+from sklearn.utils import resample
+
+from src.utilFunctions import MSE
 
 
 class layer():
-    def __init__(self, input_nodes, weigths, bias, activation):
+    def __init__(self, input_nodes, weigths_bias, activation):
         self.input_nodes = input_nodes
-        self.weights = weigths
-        self.bias = bias
+        self.weights, self.bias = weigths_bias
         self.activation = activation
 
     def __call__(self, X):
         """
         Calcualtes dot product for this layer
         """
-        ldot = np.dot(X, self.weights) + self.bias
-        return self.activation(ldot)
+        ldot = np.matmul(X, self.weights) + self.bias
+        self.layer_data = self.activation(ldot)
+        return self.layer_data
+
+    @property
+    def output(self):
+        return self.layer_data
 
 
-class FFNnetwork():
+class FFNNetwork():
     """
     Need:
         input layer
@@ -32,20 +38,38 @@ class FFNnetwork():
 
     """
 
-    def __init__(self, dataX, dataY, n_hidden_nodes, n_cat, epochs, batch_size, eta, lmbd):
+    def __init__(self, dataX, dataY, testX, testY, layers: list, activation_function="sigmoid"):
         self.dataX, self.dataY = dataX, dataY
+        self.testX, self.testY = testX, testY
 
         self.n_inpt, self.n_feat = dataX.shape
-        self.n_hidden_nodes = n_hidden_nodes
-        self.n_cat = n_cat
 
-        self.epochs = epochs
-        self.batch_size = batch_size
-        self.iterations = self.n_inpt // self.batch_size
-        self.eta = eta
-        self.lmbd = lmbd
+        self._layers = []
 
-        self.generate_biases_and_weights()
+        activation = getattr(self, activation_function)
+
+        input_prev_layer = None
+
+        for i, nodes in enumerate(layers):
+            if i == 0:
+                # Create the input layer
+                self._layers.append(
+                    layer(nodes,
+                          self.generate_biases_and_weights(
+                              self.n_feat, nodes),
+                          activation))
+            else:
+                # Create all the hidden layers
+                self._layers.append(layer(
+                                    input_prev_layer,
+                                    self.generate_biases_and_weights(
+                                        input_prev_layer, nodes),
+                                    activation))
+            input_prev_layer = nodes
+
+        print(dataY.shape)
+        self._layers.append(
+            layer(input_prev_layer, self.generate_biases_and_weights(input_prev_layer, dataY.shape[0]), activation))
 
     def sigmoid(self, X):
         """
@@ -53,58 +77,56 @@ class FFNnetwork():
         """
         return 1/(1 + np.exp(-X))
 
-    def generate_biases_and_weights(self):
-        self.hidden_weights = np.random.randn(self.n_feat, self.n_hidden_nodes)
-        self.hidden_bias = np.zeros(self.n_hidden_nodes) + 0.01
+    def generate_biases_and_weights(self, n_input, n_nodes):
+        hidden_weights = np.random.randn(n_input, n_nodes)
+        hidden_bias = np.zeros(n_nodes) + 0.01
 
-        self.output_weights = np.random.randn(self.n_hidden_nodes, self.n_cat)
-        self.output_bias = np.zeros(self.n_cat) + 0.01
+        return hidden_weights, hidden_bias
 
     def feed_forward_loop(self, X):
-        # input to hidden layers
-        z_h = np.matmul(X, self.hidden_weights) + self.hidden_bias
-        # calculate activation in hidden layers
-        a_h = self.sigmoid(z_h)
-        # calculate for outputlayer
-        z_o = np.matmul(a_h, self.output_weights) + self.output_bias
+        for layer in self._layers:
+            X = layer(X)
+        return X
 
-        # softmax
-        exp_term = np.exp(z_o)
+    def backpropagation(self, X, Y, lrate=0.01, lamb=0):
 
-        self.probabilities = exp_term / np.sum(exp_term, axis=1, keepdims=True)
+        # calcualte error of output layer
+        error_output_layer = self._layers[-1].layer_data - Y
 
-    def feed_forward_end(self, X):
-        # input to hidden layers
-        z_h = np.matmul(X, self.hidden_weights) + self.hidden_bias
-        # calculate activation in hidden layers
-        self.a_h = self.sigmoid(z_h)
-        # calculate for outputlayer
-        z_o = np.matmul(a_h, self.output_weights) + self.output_bias
+        # create array to hold all errors
+        errors = np.empty(len(self._layers)-1, dtype=np.ndarray)
 
-        # softmax
-        exp_term = np.exp(z_o)
+        # set last elemtment of errors array to output error
+        errors[-1] = error_output_layer
 
-        return exp_term / np.sum(exp_term, axis=1, keepdims=True)
+        # Loop to calculate error in all layers expect input
+        for i in reversed(range(len(self._layers)-1)):
+            # Get output from current layer
+            layerD = self._layers[i].layer_data
 
-    def backpropagation(self):
-        error_output = self.probabilities - self.dataY
-        error_hidden = self.np.matmul(
-            error_output, self.output_weights.T) * self.a_h * (1 - self.a_h)
+            # calculate layer error and set in errors array
+            layer_error = errors[-1] @ (self._layers[i +
+                                        1].weights).T * layerD*(1-layerD)
+            errors[i] = layer_error
 
-        self.output_weights_gradient = np.matmul(self.a_h.T, error_output)
-        self.output_bias_gradient = np.sum(error_output, axis=0)
+        layer_input = X
 
-        self.hidden_weights_gradient = np.matmul(self.dataX.T, error_hidden)
-        self.hidden_bias_gradient = np.sum(error_hidden, axis=0)
+        # mBatch size, all input from input layer is the batchsize, this will
+        # also depend on batchsize given in train function
+        m = X.shape[0]  # ?
 
-        if self.lmbd > 0.0:
-            self.output_weights_gradient += self.lmbd * self.output_weights
-            self.hidden_weights_gradient += self.lmbd + self.hidden_weights
+        # Update weigths using SGD
+        for error, (i, layer) in zip(errors, enumerate(self._layers)):
+            weights_grad = layer_input.T @ error
+            bias_grad = np.sum(error, axis=0)
 
-        self.output_weights -= self.eta * self.output_weights_gradient
-        self.output_bias -= self.eta * self.output_bias_gradient
-        self.hidden_weights -= self.eta * self.hidden_weights_gradient
-        self.hidden_bias -= self.eta * self.hidden_bias_gradient
+            reg = lamb * layer.weights
+
+            # Update layer weights
+            layer.weights = layer.weights - lrate*(weights_grad + reg) / m
+            layer.bias = layer.bias - lrate*bias_grad / m
+
+            layer_input = layer.layer_data
 
     @property
     def get_prob(self):
@@ -114,10 +136,35 @@ class FFNnetwork():
     def get_predictor(self):
         return np.argmax(self.probabilities, axis=1)
 
-    def train(self):
-        data_indices = np.arrange(self.n_inputs)
+    def train(self, n_epochs=10, t: tuple = (5, 50), lrate=0.01, lamb=1, n_batches=1):
+        batch_size = self.dataX.shape[0]//n_batches
 
-        for i in range(self.epochs):
-            for j in range(self.iterations):
-                self.batch_dataX, self.batch_dataY = resample(
-                    self.dataX, self.dataY, replace=False)
+        prev_accuracy = np.empty([n_epochs, n_batches])
+
+        for i in range(n_epochs):
+            for j in range(n_batches):
+                batch_dataX, batch_dataY = resample(
+                    self.dataX, self.dataY, replace=False, n_samples=batch_size)
+
+                self.feed_forward_loop(batch_dataX)
+                self.backpropagation(batch_dataX, batch_dataY, lrate, lamb)
+
+                prev_accuracy[i, j] = self.accuracy(self.testX, self.testY)
+
+        return prev_accuracy
+
+    def pred(self, X):
+        self.feed_forward_loop(X)
+        return np.argmax(self._layers[-1].output, axis=1)
+
+    def accuracy(self, X, y):
+        y_pred = self.pred(X)
+        print(y_pred.shape)
+
+        return self._onehot_pred(y, y_pred)
+
+    def _onehot_pred(self, trueY, predY):
+        p = predY  # np.argmax(predY, axis=0)
+        t = trueY  # np.argmax(trueY, axis=0)
+
+        return np.sum(p == t)/len(predY)
