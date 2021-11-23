@@ -23,6 +23,11 @@ class layer():
     def output(self):
         return self.layer_data
 
+    @property
+    def prob(self):
+        exp_term = np.exp(self.layer_data)
+        return exp_term / np.sum(exp_term, axis=1, keepdims=True)
+
 
 class FFNNetwork():
     """
@@ -90,7 +95,7 @@ class FFNNetwork():
     def backpropagation(self, X, Y, lrate=0.01, lamb=0):
 
         # calcualte error of output layer
-        error_output_layer = self._layers[-1].layer_data - Y
+        error_output_layer = self._layers[-1].prob - Y
 
         # create array to hold all errors
         errors = np.empty(len(self._layers)-1, dtype=np.ndarray)

@@ -114,7 +114,7 @@ def run_FFNN_grad():
     plt.show()
     """
 
-    layers = [train_X.shape[1], 100, 100, 100, 100, 100]
+    layers = [train_X.shape[1], 80]
 
     network = FFNNetwork(train_X, train_Y, test_X, test_Y, layers)
     accuracy = network.train(n_batches=10)
