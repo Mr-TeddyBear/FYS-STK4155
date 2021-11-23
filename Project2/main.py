@@ -114,10 +114,12 @@ def run_FFNN_grad():
     plt.show()
     """
 
-    layers = [train_X.shape[1], 100]
+    layers = [train_X.shape[1], 100, 100, 100, 100, 100]
 
     network = FFNNetwork(train_X, train_Y, test_X, test_Y, layers)
-    accuracy = network.train()
+    accuracy = network.train(n_batches=10)
+
+    print(network.get_prob)
 
     sea.heatmap(accuracy)
     plt.show()

@@ -67,7 +67,6 @@ class FFNNetwork():
                                     activation))
             input_prev_layer = nodes
 
-        print(dataY.shape)
         self._layers.append(
             layer(input_prev_layer, self.generate_biases_and_weights(input_prev_layer, dataY.shape[0]), activation))
 
@@ -130,13 +129,13 @@ class FFNNetwork():
 
     @property
     def get_prob(self):
-        return self.probabilities
+        return np.argmax(self._layers[-1].output, axis=1)
 
     @property
     def get_predictor(self):
         return np.argmax(self.probabilities, axis=1)
 
-    def train(self, n_epochs=10, t: tuple = (5, 50), lrate=0.01, lamb=1, n_batches=1):
+    def train(self, n_epochs=10, t: tuple = (5, 50), lrate=0.01, lamb=0, n_batches=1):
         batch_size = self.dataX.shape[0]//n_batches
 
         prev_accuracy = np.empty([n_epochs, n_batches])
@@ -160,7 +159,7 @@ class FFNNetwork():
     def accuracy(self, X, y):
         y_pred = self.pred(X)
         print(y_pred.shape)
-
+        return MSE(y_pred, y)
         return self._onehot_pred(y, y_pred)
 
     def _onehot_pred(self, trueY, predY):
