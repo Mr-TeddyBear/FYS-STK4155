@@ -2,7 +2,7 @@ import numpy as np
 
 from sklearn.utils import resample
 
-from src.utilFunctions import MSE
+from src.utilFunctions import MSE, R2
 
 
 class layer():
@@ -15,7 +15,7 @@ class layer():
         """
         Calcualtes dot product for this layer
         """
-        ldot = np.matmul(X, self.weights) + self.bias
+        ldot = np.dot(X, self.weights) + self.bias
         self.layer_data = self.activation(ldot)
         return self.layer_data
 
@@ -26,7 +26,7 @@ class layer():
     @property
     def prob(self):
         exp_term = np.exp(self.layer_data)
-        return exp_term / np.sum(exp_term, axis=1, keepdims=True)
+        return np.argmax(exp_term / np.sum(exp_term, axis=1, keepdims=True), axis=0)
 
 
 class FFNNetwork():
@@ -92,26 +92,27 @@ class FFNNetwork():
             X = layer(X)
         return X
 
-    def backpropagation(self, X, Y, lrate=0.01, lamb=0):
+    def backpropagation(self, X, Y, lrate=0.1, lamb=0):
 
         # calcualte error of output layer
         error_output_layer = self._layers[-1].prob - Y
-
+       # print("output shape ", self._layers[-1].prob.shape)
         # create array to hold all errors
-        errors = np.empty(len(self._layers)-1, dtype=np.ndarray)
+        errors = np.empty(len(self._layers), dtype=np.ndarray)
 
         # set last elemtment of errors array to output error
         errors[-1] = error_output_layer
 
-        # Loop to calculate error in all layers expect input
+        # Loop to calculate error in all layers expect output
         for i in reversed(range(len(self._layers)-1)):
             # Get output from current layer
             layerD = self._layers[i].layer_data
 
             # calculate layer error and set in errors array
-            layer_error = errors[-1] @ (self._layers[i +
-                                        1].weights).T * layerD*(1-layerD)
+            layer_error = errors[i+1] @ (self._layers[i +
+                                                      1].weights).T * layerD*(1-layerD)
             errors[i] = layer_error
+            #print(i, len(errors))
 
         layer_input = X
 
@@ -121,11 +122,12 @@ class FFNNetwork():
 
         # Update weigths using SGD
         for error, (i, layer) in zip(errors, enumerate(self._layers)):
+            #            print(layer_input.shape, error.shape)
             weights_grad = layer_input.T @ error
             bias_grad = np.sum(error, axis=0)
 
+            # Regularization term
             reg = lamb * layer.weights
-
             # Update layer weights
             layer.weights = layer.weights - lrate*(weights_grad + reg) / m
             layer.bias = layer.bias - lrate*bias_grad / m
@@ -163,7 +165,6 @@ class FFNNetwork():
 
     def accuracy(self, X, y):
         y_pred = self.pred(X)
-        print(y_pred.shape)
         return MSE(y_pred, y)
         return self._onehot_pred(y, y_pred)
 
