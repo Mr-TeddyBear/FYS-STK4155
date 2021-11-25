@@ -26,7 +26,8 @@ class layer():
     @property
     def prob(self):
         exp_term = np.exp(self.layer_data)
-        return np.argmax(exp_term / np.sum(exp_term, axis=1, keepdims=True), axis=0)
+        print(exp_term.shape)
+        return exp_term / np.sum(exp_term, axis=0, keepdims=True)
 
 
 class FFNNetwork():
@@ -109,8 +110,9 @@ class FFNNetwork():
             layerD = self._layers[i].layer_data
 
             # calculate layer error and set in errors array
-            layer_error = errors[i+1] @ (self._layers[i +
-                                                      1].weights).T * layerD*(1-layerD)
+            layer_error = errors[i+1] @ ((self._layers[i +
+                                                       1].weights).T * layerD*(1-layerD))
+            print("Error shape  ", layer_error.shape)
             errors[i] = layer_error
             #print(i, len(errors))
 
@@ -122,8 +124,8 @@ class FFNNetwork():
 
         # Update weigths using SGD
         for error, (i, layer) in zip(errors, enumerate(self._layers)):
-            #            print(layer_input.shape, error.shape)
-            weights_grad = layer_input.T @ error
+            print(layer_input.shape, error.shape)
+            weights_grad = layer_input @ error
             bias_grad = np.sum(error, axis=0)
 
             # Regularization term
@@ -147,11 +149,15 @@ class FFNNetwork():
 
         prev_accuracy = np.empty([n_epochs, n_batches])
 
+        data_indices = np.arange(self.n_inpt)
+        print(len(data_indices))
+
         for i in range(n_epochs):
             for j in range(n_batches):
-                batch_dataX, batch_dataY = resample(
-                    self.dataX, self.dataY, replace=False, n_samples=batch_size)
-
+                batch_data_indices = np.random.choice(data_indices)
+                batch_dataX, batch_dataY = self.dataX[batch_data_indices,
+                                                      :], self.dataY[batch_data_indices]
+                print("Batch size data ", batch_dataX.shape, batch_dataY.shape)
                 self.feed_forward_loop(batch_dataX)
                 self.backpropagation(batch_dataX, batch_dataY, lrate, lamb)
 

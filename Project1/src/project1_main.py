@@ -17,7 +17,7 @@ from testFunctions import *
 
 
 def main():
-    Path("figures").mkdir(parents=True, exist_ok=True)
+    # Path("figures").mkdir(parents=True, exist_ok=True)
     np.random.seed(1859)
     n = 2
     N = 100
@@ -27,8 +27,8 @@ def main():
     #print(np.shape(x), np.shape(y))
     X = create_X(x, y, n=n, method="squared")
     z = FrankeFunction(x, y)
-#    print(np.shape(X), np.shape(z))
-
+    print(np.shape(X), np.shape(z))
+    input()
     train_X, test_X, train_Y, test_Y = train_test_split(X, z, test_size=0.2)
 
     ols_fit = OLS(train_X, train_Y)

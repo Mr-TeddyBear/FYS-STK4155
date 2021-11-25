@@ -13,6 +13,7 @@ from src.regressionMethods import OLS
 from src.utilFunctions import create_X, R2, MSE
 from src.frankefunction import FrankeFunction
 from src.FFNN import FFNNetwork
+from src.logisticRegression import logisticRegression
 
 from tqdm import tqdm
 
@@ -79,7 +80,9 @@ def run_SGD():
 #            print(mse_tmp, e, m)
             MSE_result[i, j] = mse_tmp
 
-    sea.heatmap(MSE_result, robust=True)
+    ax = sea.heatmap(MSE_result, robust=True, yticklabels=[
+        i for i in epochs], xticklabels=[i for i in M])
+    ax.set(xlabel="Minibatches", ylabel="Epochs")
     plt.show()
 
 
@@ -96,11 +99,9 @@ def run_FFNN_grad():
     z = FrankeFunction(x, y)
 
     #z = np.array(z)
-    print(z.shape, X.shape)
 
     train_X, test_X, train_Y, test_Y = train_test_split(X, z, test_size=0.2)
 
-    print(train_Y.shape)
     epochs = range(60, 301, 40)
     M = range(20, 80, 10)
     degree = range(5, 15)
@@ -108,10 +109,12 @@ def run_FFNN_grad():
 
     acc_score = np.empty([len(epochs), len(M)])
 
+    print(train_Y.shape)
+    print("Train x shape ", train_X.shape)
     for i, e in enumerate(epochs):
         for j, m in enumerate(M):
             layers = (train_X.shape[0], 100, 100)
-            network = FFNNetwork(train_X, train_Y, test_X, test_Y, layers)
+            network = FFNNetwork(train_X.T, train_Y, test_X, test_Y, layers)
             network.train(n_batches=m, n_epochs=e)
             accuracy = network.accuracy(test_X, test_Y)
 
@@ -133,37 +136,75 @@ def run_FFNN_skdata():
     train_X, test_X, train_Y, test_Y = train_test_split(X, y,
                                                         random_state=1)
 
-    print(train_Y.shape)
     epochs = range(60, 301, 40)
     M = range(20, 80, 10)
     degree = range(5, 15)
     t0, t1 = 5, 500
 
-    print(train_X.shape)
+    print(train_Y.shape)
+    print("Train x shape ", train_X.shape)
 
     acc_score = np.empty([len(epochs), len(M)])
 
     for i, e in enumerate(epochs):
         for j, m in enumerate(M):
-            layers = (train_X.shape[1], 100, 100)
-            network = FFNNetwork(train_X, train_Y, test_X, test_Y, layers)
-            network.train(n_batches=m, n_epochs=e)
-            accuracy = network.accuracy(test_X, test_Y)
-
+            layers = (train_X.shape[0], 100, 100)
             skNetwork = MLPRegressor(hidden_layer_sizes=layers[1:], activation='logistic', solver="sgd", alpha=0.01, batch_size=int(
                 train_X.shape[0] // m), learning_rate='constant', learning_rate_init=0.01)
             skNetwork.fit(train_X, train_Y)
-            skScore = skNetwork.score(test_X, test_Y)
+            accuracy = skNetwork.score(test_X, test_Y)
 
-            print("Accuracy ", accuracy, skScore)
+            print("Accuracy ", accuracy)
 
             acc_score[i, j] = accuracy
     print(np.min(acc_score), np.argmin(acc_score))
-    sea.heatmap(acc_score, robust=True)
+    ax = sea.heatmap(acc_score, robust=True, yticklabels=[
+                     i for i in epochs], xticklabels=[i for i in M])
+    ax.set(xlabel="Minibatches", ylabel="Epochs")
+    plt.show()
+
+
+def logreg():
+    np.random.seed(1804)
+    n = 2
+    N = 100
+    level = 0.2
+
+    x = np.random.uniform(0, 1, N) + np.random.normal(0, 0.1, N)*level
+    y = np.random.uniform(0, 1, N) + np.random.normal(0, 0.1, N)*level
+
+    X = create_X(x, y, n)
+    z = FrankeFunction(x, y)
+
+    z = np.array([z, ])
+    z = z.T
+
+    train_X, test_X, train_Y, test_Y = train_test_split(X, z, test_size=0.2)
+
+    epochs = range(60, 301, 40)
+    M = range(20, 80, 10)
+    degree = range(5, 15)
+    t0, t1 = 5, 500
+
+    acc_score = np.empty([len(epochs), len(M)])
+
+    print(train_Y.shape)
+    print("Train x shape ", train_X.shape)
+    for i, e in enumerate(epochs):
+        for j, m in enumerate(M):
+            logreger = logisticRegression(e, m, 5, 50)
+            logreger.fit(train_X, train_Y)
+            accuracy = logreger.score(test_X, test_Y)
+            acc_score[i, j] = accuracy
+
+    ax = sea.heatmap(acc_score, robust=True, yticklabels=[
+                     i for i in epochs], xticklabels=[i for i in M])
+    ax.set(xlabel="Minibatches", ylabel="Epochs")
     plt.show()
 
 
 if __name__ == "__main__":
+    logreg()
+    run_SGD()
     run_FFNN_skdata()
     run_FFNN_grad()
-    run_SGD()
